@@ -1,0 +1,79 @@
+# =============================================================================
+# obsidian-livesync — CouchDB backend for Obsidian Self-hosted LiveSync
+# =============================================================================
+# Runs in its own folder (default /opt/obsidian-livesync) with its own Compose
+# project, network and volumes, so it can share a server with other stacks
+# without touching them.
+#
+# Access path: CouchDB listens on 127.0.0.1 only. `tailscale serve`
+# (scripts/tailscale-serve.sh) is the single way in — HTTPS on :6984 by
+# default, tailnet members only. No port is opened to the internet.
+#
+# No scheduler labels (e.g. ofelia.*) on purpose: label-based schedulers adopt
+# jobs from every container on the host, which can collide with other stacks.
+# Backups run from a systemd timer instead (deploy/systemd/).
+#
+# Resource budget: 512 MB RAM ceiling, 1 CPU, sized for a small shared VPS.
+# Limits are ceilings, not reservations.
+#
+# Usage (on the server, in the project folder)
+#   cp .env.example .env    # fill in secrets (or ./scripts/deploy.sh --env)
+#   make up                 # start CouchDB
+#   make provision          # create the vault database + device user
+#   make serve-on           # publish on https://<machine>.<tailnet>.ts.net:6984
+# =============================================================================
+
+name: obsidian-livesync
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # CouchDB 3.5 — LiveSync replication target
+  # Settings mirror LiveSync's own provisioning script (couchdb/livesync.ini).
+  # ---------------------------------------------------------------------------
+  couchdb:
+    image: couchdb:3.5.2
+    container_name: ${COUCHDB_CONTAINER:-obsidian_couchdb}
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:?set COUCHDB_USER in .env}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:?set COUCHDB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${COUCHDB_LOCAL_PORT:-5984}:5984"   # loopback only, never the tailnet IP
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+      - couchdb_etc:/opt/couchdb/etc/local.d          # docker.ini: admin hash, secret, uuid
+      - ./couchdb/livesync.ini:/livesync/livesync.ini:ro
+    # The stock entrypoint chowns everything under /opt/couchdb under `set -e`,
+    # so a read-only file mounted there crashes startup. Mount the ini outside
+    # and copy it into default.d first; tini + the stock entrypoint run as usual.
+    entrypoint: ["tini", "--", "sh", "-c",
+                 "cp /livesync/livesync.ini /opt/couchdb/etc/default.d/90-livesync.ini && exec /docker-entrypoint.sh /opt/couchdb/bin/couchdb"]
+    oom_score_adj: -500   # a data store: under memory pressure, let the OOM killer pick other processes first
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:5984/_up >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [obsidian_net]
+
+volumes:
+  couchdb_data:
+  couchdb_etc:
+
+networks:
+  obsidian_net:
+    driver: bridge
