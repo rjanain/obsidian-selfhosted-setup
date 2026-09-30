@@ -118,7 +118,7 @@ cp .env.example .env && chmod 600 .env   # set passwords and TS_HOSTNAME=<server
 ```bash
 cp .env.example .env          # set passwords, TS_HOSTNAME, DEPLOY_HOST, DEPLOY_USER
 make lint smoke-test          # optional: local throwaway stack, needs Docker
-./scripts/deploy.sh --dry-run # shows it would create /opt/obsidian-livesync, nothing else
+./scripts/deploy.sh --init --dry-run  # shows it would create /opt/obsidian-livesync, nothing else
 ./scripts/deploy.sh --init --env
 ```
 
