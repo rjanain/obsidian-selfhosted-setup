@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck -x scripts/*.sh
+      - name: compose config
+        run: COUCHDB_USER=x COUCHDB_PASSWORD=x docker compose config -q
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boot, provision, verify, back up, restore
+        run: bash scripts/smoke-test.sh

@@ -1,0 +1,16 @@
+# Snapshot the Obsidian LiveSync CouchDB volumes (see scripts/backup.sh).
+# Installed by `make install-backup-timer`, which fills in @USER@, @GROUP@ and
+# @DIR@ with the user running it and the project folder. Triggered by the .timer unit.
+[Unit]
+Description=Snapshot Obsidian LiveSync CouchDB volumes
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=@USER@
+Group=@GROUP@
+WorkingDirectory=@DIR@
+ExecStart=/bin/bash @DIR@/scripts/backup.sh
+Nice=10
+IOSchedulingClass=idle

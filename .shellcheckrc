@@ -1,0 +1,5 @@
+# ok() and bad() in scripts/lib.sh always return 0, so `test && ok || bad`
+# is a safe if/else.
+disable=SC2015
+# ssh command strings expand on the client on purpose (paths come from .env).
+disable=SC2029

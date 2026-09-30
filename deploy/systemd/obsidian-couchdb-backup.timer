@@ -1,0 +1,12 @@
+# Weekly, Sunday 03:30 server time. Change OnCalendar if another heavy job runs then.
+# Persistent=true runs a missed backup at the next boot.
+[Unit]
+Description=Weekly Obsidian LiveSync CouchDB snapshot
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
