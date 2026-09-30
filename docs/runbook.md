@@ -137,7 +137,7 @@ make serve-on     # https://<server>:6984, tailnet only
 **Check:** `make verify` prints "All checks passed". Run it from any tailnet machine
 that has this repo and your `.env` (the server itself works too). Also open
 `https://<server>:6984/_up` in a phone's browser with Tailscale on: it should show
-`{"status":"ok"}` behind a valid padlock.
+`{"seeds":{},"status":"ok"}` behind a valid padlock.
 
 ---
 
